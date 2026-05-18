@@ -73,7 +73,7 @@ _FALLBACK_KEYWORDS = {
 class GemmaInterpreter:
     """Reads expressive resonance from text using Gemma 4 via Ollama."""
 
-    def __init__(self, model: str = "gemma4:4b"):
+    def __init__(self, model: str = "gemma4:2b"):
         self.model = model
         self._last_state = dict(FALLBACK_STATE)
 

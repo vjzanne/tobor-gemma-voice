@@ -10,7 +10,7 @@ Usage:
   python tobor.py                          # text mode, browser visualizer
   python tobor.py --mode mic               # live microphone
   python tobor.py --mode text --no-server  # console only, no browser
-  python tobor.py --model gemma4:2b        # smaller model (Raspberry Pi)
+  python tobor.py --model gemma4:4b        # larger model (requires GPU)
 """
 
 import argparse
@@ -29,8 +29,8 @@ def main():
         help="Input: 'text' to type, 'mic' for microphone (default: text)",
     )
     parser.add_argument(
-        "--model", default="gemma4:4b",
-        help="Ollama model name (default: gemma4:4b)",
+        "--model", default="gemma4:2b",
+        help="Ollama model name (default: gemma4:2b)",
     )
     parser.add_argument(
         "--port", type=int, default=5000,
