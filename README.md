@@ -1,62 +1,97 @@
 # tobor-gemma-voice
 
-**Tobor listens. Gemma 4 interprets. The mirror responds.**
+**Tobor transforms voice into live visual response using local AI.**
 
-Tobor is a therapy-art robot built for live performance around intergenerational trauma, grief, and human connection. When a person speaks — about memory, loss, longing, family — Tobor doesn't reply. It *reflects*. The room changes color. The robot leans forward. A single word appears and dissolves.
+This project explores how a small local language model can act as an interpretive layer between human speech and real-time audiovisual expression.
 
-This repository is the interpretive layer: the part where voice becomes feeling.
+A person speaks.
+The system does not interpret in a clinical or diagnostic sense.
+It translates language into a structured emotional state that drives visuals and optional robotic movement.
 
 ---
 
-## How It Works
+## What this is
+
+Tobor is an experimental audiovisual instrument.
+
+It sits between:
+
+* spoken language (or text input)
+* a local language model (Gemma 4)
+* real-time visual and physical output
+
+The goal is not analysis or classification.
+The goal is translation: from language → expressive state → movement.
+
+---
+
+## System flow
 
 ```
 Voice / text input
-       │
-       ▼
-  faster-whisper       ←  local speech-to-text, no cloud
-       │
-       ▼
-    Gemma 4            ←  the interpretive brain, runs via Ollama
-       │                   reads what is really being said
-       ▼
-  JSON state
-  ┌─────────────────────────────────────┐
-  │ emotion    vulnerable               │
-  │ intensity  0.87                     │
-  │ energy     0.28                     │
-  │ resonance  unspoken                 │
-  │ visual     fragmented_glow          │
-  │ robot      leaning_in               │
-  └─────────────────────────────────────┘
-       │
-       ├──▶  Canvas visualization  (live browser)
-       └──▶  Robot body             (Raspberry Pi, optional)
+        │
+        ▼
+faster-whisper (optional)
+speech-to-text, local
+        │
+        ▼
+Gemma 4 (Ollama)
+interprets meaning + tone in context
+        │
+        ▼
+structured JSON state
+        │
+        ├──► browser visualization (live canvas)
+        └──► robot control (optional Raspberry Pi)
 ```
 
-Gemma 4 is the **only AI model**. No pre-trained tone detectors. No labeled datasets. Just a language model asked to find what is really being said — and what it costs to say it.
+Gemma is the only reasoning component.
+No emotion classifiers. No training on labeled datasets.
+Only a language model responding to structured prompts.
 
 ---
 
-## Demo (60 seconds)
+## Output format
 
-```bash
-# 1. Pull the model
-ollama pull gemma4:4b          # or gemma4:2b for Raspberry Pi
+The model returns a small structured state:
 
-# 2. Install
-pip install -r requirements.txt
-
-# 3. Run
-python tobor.py
-
-# 4. Open http://localhost:5000
-#    Type something — anything true.
+```json
+{
+  "emotion": "vulnerable",
+  "intensity": 0.82,
+  "energy": 0.41,
+  "resonance": "distance",
+  "visual_mode": "soft_fragmentation",
+  "robot_state": "leaning_in"
+}
 ```
 
-No microphone required. Type directly. Watch the canvas respond.
+This is not a psychological diagnosis.
+It is a control signal for an expressive system.
 
-Or run the terminal demo with no browser:
+---
+
+## Demo
+
+Run without microphone:
+
+```bash
+ollama pull gemma4:4b
+pip install -r requirements.txt
+python tobor.py
+```
+
+Open:
+
+```
+http://localhost:5000
+```
+
+Type a sentence. The system responds visually.
+
+---
+
+Terminal-only version:
 
 ```bash
 python examples/demo.py
@@ -64,67 +99,72 @@ python examples/demo.py
 
 ---
 
-## Example
+## Example interaction
 
-Given:
-> *"I never told my mother I was angry at her. She died before I could say it."*
+Input:
 
-Gemma returns:
+> I keep thinking about things I should have said.
+
+Output:
+
 ```json
 {
-  "emotion": "conflicted",
-  "intensity": 0.89,
-  "energy": 0.31,
-  "resonance": "unspoken",
-  "visual_mode": "fragmented_glow",
-  "robot_state": "leaning_in"
+  "emotion": "reflective",
+  "intensity": 0.73,
+  "energy": 0.38,
+  "resonance": "unfinished",
+  "visual_mode": "slow_drift",
+  "robot_state": "still"
 }
 ```
 
-The canvas blooms with fractured amber-lavender light. Tobor leans forward. The word *unspoken* appears and slowly dissolves.
+The system responds with slow motion, muted light shifts, and reduced movement intensity.
 
 ---
 
-## Expressive Vocabulary
+## Design vocabulary
 
-Gemma reads 10 relational states, each with its own visual signature:
+The system maps interpretation states to visual behavior:
 
-| Emotion | Visual | What it means |
-|---------|--------|---------------|
-| `tender` | soft breathing ring | gentle care, fragile |
-| `vulnerable` | scattered pale light | exposed, at cost |
-| `conflicted` | micro-shaking field | two true things at once |
-| `warm` | expanding golden glow | love, home, safety |
-| `hesitant` | barely moving | weighing something |
-| `longing` | slow drift | missing what's gone |
-| `tense` | inward collapse | pressure, resistance |
-| `fierce` | outward burst | refusing to break |
-| `absent` | intermittent sparks | numb, floating |
-| `playful` | spiraling motes | lightness, relief |
+* **tender** → soft continuous motion
+* **vulnerable** → unstable or fragmented light
+* **conflicted** → competing visual forces
+* **warm** → expanding stable glow
+* **hesitant** → delayed or reduced motion
+* **longing** → slow outward drift
+* **tense** → contraction and resistance
+* **fierce** → sharp energetic bursts
+* **absent** → minimal or fading signal
+* **playful** → circular or oscillating motion
+
+These are not psychological categories.
+They are animation controls.
 
 ---
 
 ## Why Gemma 4
 
-**Local inference is not optional — it's the point.**
+This project uses local AI intentionally.
 
-Tobor performs in community centers, care homes, school gyms, living rooms. No reliable wifi. No cloud. The stories people share are private. They should never leave the room.
+Gemma 4 is used because:
 
-With `gemma4:2b` on a Raspberry Pi 5, the entire system runs offline. No API keys. No data logging. No latency.
+* it runs locally (no cloud dependency)
+* it responds fast enough for real-time interaction
+* it can reliably produce structured outputs (JSON)
+* it can run on small devices (including Raspberry Pi setups)
 
-**Gemma 4 reads subtext.**
+This enables the system to function in private or offline environments.
 
-Tone-labeling models trained on labeled data only reach the surface. Gemma 4 understands that *"I'm fine"* said after *"my father never came to my shows"* means something specific. It finds cost, ambivalence, the gap between what was said and what was meant — which is what an empathic witness needs.
-
-**Structured output that holds.**
-
-Gemma 4's instruction-following is precise enough to return clean, validated JSON reliably in a real-time performance loop. It becomes a control brain, not just a chat interface.
+No data leaves the machine.
 
 ---
 
 ## Installation
 
-**Requirements:** Python 3.10+ · [Ollama](https://ollama.ai) running locally
+Requirements:
+
+* Python 3.10+
+* Ollama running locally
 
 ```bash
 git clone https://github.com/vjzanne/tobor-gemma-voice
@@ -132,56 +172,74 @@ cd tobor-gemma-voice
 pip install -r requirements.txt
 ```
 
-| Command | What it does |
-|---------|-------------|
-| `python tobor.py` | Text input + live browser visualization |
-| `python tobor.py --mode mic` | Microphone input (requires faster-whisper) |
-| `python tobor.py --model gemma4:2b` | Smaller model for Raspberry Pi |
-| `python tobor.py --no-server` | Console output only, no browser |
-| `python examples/demo.py` | Quick terminal demo |
+Run:
+
+```bash
+python tobor.py
+```
+
+Optional microphone mode:
+
+```bash
+python tobor.py --mode mic
+```
+
+Lightweight demo:
+
+```bash
+python examples/demo.py
+```
 
 ---
 
-## Raspberry Pi
+## Raspberry Pi mode (optional)
 
 ```bash
 ollama pull gemma4:2b
-python tobor.py --model gemma4:2b --mode mic --language en
+python tobor.py --model gemma4:2b
 ```
 
-To connect Tobor's physical body, wire a PCA9685 board to the Pi's I2C bus and uncomment the hardware section in `src/robot_bridge.py`. Each relational state maps to a specific servo position — torso lean, arm height — so the robot's body expresses what Gemma hears.
+Robot output is optional and can be disabled.
 
 ---
 
-## Structure
+## Project structure
 
 ```
 tobor-gemma-voice/
-├── tobor.py              ← entry point
+├── tobor.py
 ├── src/
-│   ├── interpreter.py    ← Gemma 4 resonance engine  ← the core
-│   ├── listener.py       ← microphone → faster-whisper STT
-│   ├── server.py         ← Flask-SocketIO visualizer server
-│   └── robot_bridge.py   ← RPi PCA9685 servo bridge (no-op on PC)
+│   ├── interpreter.py   ← Gemma 4 interface
+│   ├── listener.py      ← optional microphone input
+│   ├── server.py        ← web socket bridge
+│   └── robot_bridge.py  ← hardware output (optional)
 ├── web/
-│   └── index.html        ← canvas visualization (vanilla JS)
-└── examples/
-    ├── demo.py
-    └── sample_utterances.txt
+│   └── index.html       ← live visualization
+├── examples/
+│   ├── demo.py
+│   └── sample_utterances.txt
+└── README.md
 ```
 
 ---
 
-## About Tobor
+## Concept
 
-Tobor is a performance art project built by Zanne and Pjotr. The robot has a 40-year family history — built, broken, rebuilt, reinterpreted across generations. This demo is the interpretive layer for the 2025 performances.
+Tobor is not a conversational agent.
 
-*What does it mean for a machine to witness human pain, and reflect it back without judgment?*
+It is a translation system between:
 
-With Gemma 4 running locally, the answer is: a machine can do this anywhere, for anyone, without requiring privacy to be traded away. The stories stay in the room.
+* human expression
+* machine interpretation
+* visual/physical response
+
+It treats language as signal rather than instruction.
+
+The result is an expressive system that reacts in real time without trying to “understand” people in a human sense.
 
 ---
 
 ## License
 
 MIT
+
