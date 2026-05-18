@@ -1,0 +1,43 @@
+# Tobor Sample Utterances
+# Use these to test the interpretive layer
+# Each line = one utterance. Run: python examples/demo.py --interactive
+
+# ── Grief and loss ──────────────────────────────────────────
+I never told my mother I was angry at her. She died before I could say it.
+She used to sing that to me when I was scared. I haven't heard it since she died.
+He never said he was proud of me. Not once. And I keep doing things anyway.
+
+# ── Vulnerability ────────────────────────────────────────────
+My hands shake when I think about going back home.
+I am tired. Not sleepy tired. Something deeper.
+Sometimes I pretend to be fine just to give everyone a break from me.
+
+# ── Unresolved feelings ──────────────────────────────────────
+I don't understand why it still hurts. It was so long ago.
+When he left, I thought — finally. And then I cried for three days.
+I thought if I worked hard enough I could fix it. I couldn't.
+
+# ── Longing ──────────────────────────────────────────────────
+There's this moment in every song where I feel like everything might be okay.
+I miss the version of myself that believed things would get better.
+I keep the letters but I can't read them anymore.
+
+# ── Conflict ─────────────────────────────────────────────────
+I love her but I don't like who I am around her.
+Part of me wants to forgive him. Part of me thinks that would be a betrayal.
+I stayed too long. I knew it and I stayed anyway.
+
+# ── Warmth / connection ──────────────────────────────────────
+When my daughter holds my hand I feel like I haven't ruined everything.
+There are three people in this world who I would do anything for.
+Sometimes a meal is enough. Just being in the same kitchen is enough.
+
+# ── Tension / fierce ─────────────────────────────────────────
+I am done carrying things that were never mine.
+They called it strength but it was just survival.
+I refuse to let what happened to me happen to her.
+
+# ── Absence / numbness ───────────────────────────────────────
+I stopped feeling things at some point and I'm not sure when.
+I go through the days. That's all I can say right now.
+Nothing feels real. Not bad, just — not there.

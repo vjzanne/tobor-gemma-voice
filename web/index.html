@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tobor — Emotional Mirror</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #05050a;
+    overflow: hidden;
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
+
+  canvas { display: block; }
+
+  #label {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.18);
+    font-size: 10px;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 300;
+    pointer-events: none;
+  }
+
+  #emotion-name {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.12);
+    font-size: 11px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 300;
+    transition: color 3s ease;
+    pointer-events: none;
+  }
+
+  #robot-state {
+    position: absolute;
+    bottom: 64px;
+    right: 40px;
+    color: rgba(255, 255, 255, 0.09);
+    font-size: 9px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 300;
+    pointer-events: none;
+  }
+
+  #status {
+    position: absolute;
+    top: 28px;
+    right: 36px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(80, 80, 100, 0.4);
+    transition: background 1s ease;
+  }
+
+  #status.connected { background: rgba(100, 200, 150, 0.5); }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="label">TOBOR &middot; EMOTIONAL MIRROR</div>
+<div id="emotion-name">—</div>
+<div id="robot-state">—</div>
+<div id="status"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ============================================================
+//  Tobor Visual Engine
+//  A canvas instrument that breathes with relational states
+// ============================================================
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+
+// ── Emotion palette ─────────────────────────────────────────
+const PALETTE = {
+  tender:     { r: 255, g: 182, b: 200 },
+  vulnerable: { r: 160, g: 214, b: 235 },
+  conflicted: { r: 195, g: 148, b: 228 },
+  warm:       { r: 255, g: 208, b: 100 },
+  hesitant:   { r: 195, g: 185, b: 238 },
+  longing:    { r: 72,  g: 200, b: 192 },
+  tense:      { r: 255, g: 68,  b: 88  },
+  fierce:     { r: 255, g: 108, b: 52  },
+  absent:     { r: 155, g: 164, b: 178 },
+  playful:    { r: 255, g: 228, b: 104 },
+};
+
+// Breathing speed per emotion
+const BREATH_SPEED = {
+  tender: 0.018, vulnerable: 0.022, conflicted: 0.035,
+  warm: 0.020, hesitant: 0.015, longing: 0.018,
+  tense: 0.055, fierce: 0.048, absent: 0.010, playful: 0.040,
+};
+
+
+// ── State ───────────────────────────────────────────────────
+let cur = {
+  emotion: 'absent', intensity: 0.3, energy: 0.2,
+  resonance: '', visual_mode: 'still_deep', robot_state: 'attentive',
+  color: { ...PALETTE.absent },
+};
+let tgt = { ...cur };
+
+let breathPhase    = 0;
+let resonanceAlpha = 0;
+let shownResonance = '';
+let jitter = { x: 0, y: 0 };
+let time   = 0;
+
+
+// ── Particles ───────────────────────────────────────────────
+const MAX_P = 220;
+let particles = [];
+
+function spawn(mode, count) {
+  const cx = W / 2, cy = H / 2;
+  const col = { ...cur.color };
+
+  for (let i = 0; i < count; i++) {
+    const a  = Math.random() * Math.PI * 2;
+    const sp = 0.4 + Math.random() * 2.5;
+    let x = cx, y = cy, vx = 0, vy = 0;
+    let sz = 1.5 + Math.random() * 3.5;
+    let life = 80 + Math.random() * 140;
+
+    switch (mode) {
+      case 'scatter_bright':
+        vx = Math.cos(a) * sp * 2.5; vy = Math.sin(a) * sp * 2.5;
+        break;
+      case 'tremor_bright':
+        x += (Math.random() - 0.5) * 200; y += (Math.random() - 0.5) * 200;
+        vx = (Math.random() - 0.5) * 3; vy = (Math.random() - 0.5) * 3;
+        sz = 1 + Math.random() * 2; life = 30 + Math.random() * 60;
+        break;
+      case 'spiral_inward':
+        x = cx + Math.cos(a) * (100 + Math.random() * 220);
+        y = cy + Math.sin(a) * (100 + Math.random() * 220);
+        vx = -Math.cos(a) * sp * 0.7 + Math.cos(a + Math.PI / 2) * sp * 0.4;
+        vy = -Math.sin(a) * sp * 0.7 + Math.sin(a + Math.PI / 2) * sp * 0.4;
+        break;
+      case 'bloom_warm':
+        vx = Math.cos(a) * sp * 0.7; vy = Math.sin(a) * sp * 0.7;
+        sz = 2 + Math.random() * 5; life = 120 + Math.random() * 80;
+        break;
+      case 'wave_gentle':
+        x = cx + (Math.random() - 0.5) * W * 0.85;
+        y = cy + Math.sin(x * 0.008 + time) * 80 + (Math.random() - 0.5) * 60;
+        vx = (Math.random() - 0.5) * 0.4; vy = -0.2 - Math.random() * 0.4;
+        sz = 1 + Math.random() * 2;
+        break;
+      case 'fragmented_glow':
+        x = cx + (Math.random() - 0.5) * W * 0.7;
+        y = cy + (Math.random() - 0.5) * H * 0.7;
+        vx = (Math.random() - 0.5) * 0.8; vy = (Math.random() - 0.5) * 0.8;
+        sz = 1 + Math.random() * 4;
+        break;
+      case 'collapse_dark':
+        x = cx + Math.cos(a) * (60 + Math.random() * 300);
+        y = cy + Math.sin(a) * (60 + Math.random() * 300);
+        vx = (cx - x) * 0.012; vy = (cy - y) * 0.012;
+        sz = 1 + Math.random() * 2;
+        break;
+      case 'flicker_void':
+        x = cx + (Math.random() - 0.5) * W * 0.5;
+        y = cy + (Math.random() - 0.5) * H * 0.5;
+        vx = (Math.random() - 0.5) * 0.3; vy = (Math.random() - 0.5) * 0.3;
+        sz = 0.5 + Math.random() * 1.5; life = 10 + Math.random() * 40;
+        break;
+      default: // still_deep, pulse_soft
+        x = cx + (Math.random() - 0.5) * 300; y = cy + (Math.random() - 0.5) * 300;
+        vx = (Math.random() - 0.5) * 0.3; vy = -0.1 - Math.random() * 0.2;
+        sz = 1 + Math.random() * 2; life = 100 + Math.random() * 100;
+    }
+
+    particles.push({ x, y, vx, vy, life, maxLife: life, sz, col });
+    if (particles.length > MAX_P) particles.shift();
+  }
+}
+
+
+// ── Helpers ──────────────────────────────────────────────────
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpCol(a, b, t) {
+  return { r: lerp(a.r, b.r, t), g: lerp(a.g, b.g, t), b: lerp(a.b, b.b, t) };
+}
+function rgba(col, a) {
+  return `rgba(${Math.round(col.r)},${Math.round(col.g)},${Math.round(col.b)},${a})`;
+}
+
+
+// ── Update ───────────────────────────────────────────────────
+function update() {
+  time += 0.016;
+
+  const bspeed = BREATH_SPEED[tgt.emotion] || 0.020;
+  breathPhase += bspeed * (0.6 + cur.energy * 0.8);
+
+  cur.intensity = lerp(cur.intensity, tgt.intensity, 0.04);
+  cur.energy    = lerp(cur.energy,    tgt.energy,    0.04);
+  cur.color     = lerpCol(cur.color, PALETTE[tgt.emotion] || PALETTE.absent, 0.025);
+
+  // Resonance word crossfade
+  if (shownResonance !== tgt.resonance) {
+    resonanceAlpha = lerp(resonanceAlpha, 0, 0.08);
+    if (resonanceAlpha < 0.03) shownResonance = tgt.resonance;
+  } else {
+    resonanceAlpha = lerp(resonanceAlpha, 0.88, 0.025);
+  }
+
+  // Jitter for tense / tremor
+  if (tgt.emotion === 'tense' || tgt.visual_mode === 'tremor_bright') {
+    jitter.x = (Math.random() - 0.5) * cur.intensity * 6;
+    jitter.y = (Math.random() - 0.5) * cur.intensity * 6;
+  } else {
+    jitter.x = lerp(jitter.x, 0, 0.15);
+    jitter.y = lerp(jitter.y, 0, 0.15);
+  }
+
+  // Particle spawn rate based on energy and mode
+  const spawnRate = cur.energy * 0.18;
+  if (Math.random() < spawnRate) {
+    spawn(tgt.visual_mode, 1 + Math.floor(cur.energy * 4));
+  }
+
+  // Update particles
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.life--;
+    if (tgt.visual_mode === 'wave_gentle') {
+      p.vx += Math.sin(p.y * 0.018 + time) * 0.015;
+    }
+  });
+}
+
+
+// ── Draw ─────────────────────────────────────────────────────
+function draw() {
+  // Soft fade (not full clear — creates trail)
+  ctx.fillStyle = 'rgba(5, 5, 10, 0.13)';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2 + jitter.x;
+  const cy = H / 2 + jitter.y;
+  const col = cur.color;
+
+  // Breathing orb radius
+  const base   = 70 + cur.intensity * 130;
+  const breath = Math.sin(breathPhase) * 22 * cur.intensity;
+  const radius = base + breath;
+
+  // Outer glow rings
+  for (let i = 4; i >= 1; i--) {
+    const gr = radius + i * 38;
+    const ga = (0.035 * cur.intensity) / i;
+    ctx.beginPath();
+    ctx.arc(cx, cy, gr, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba(col, ga);
+    ctx.lineWidth   = 0.8;
+    ctx.stroke();
+  }
+
+  // Secondary pulse ring (for pulse_soft and bloom_warm)
+  if (tgt.visual_mode === 'pulse_soft' || tgt.visual_mode === 'bloom_warm') {
+    const pulseR = radius + 60 + Math.sin(breathPhase * 0.6) * 40 * cur.intensity;
+    ctx.beginPath();
+    ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba(col, 0.04 * cur.intensity);
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  }
+
+  // Central orb (radial gradient)
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  g.addColorStop(0.0, rgba(col, 0.92));
+  g.addColorStop(0.35, rgba(col, 0.45));
+  g.addColorStop(0.75, rgba(col, 0.12));
+  g.addColorStop(1.0,  rgba(col, 0.0));
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  // Particles
+  particles.forEach(p => {
+    const life  = p.life / p.maxLife;
+    const alpha = life * 0.65;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.sz * Math.max(0.1, life), 0, Math.PI * 2);
+    ctx.fillStyle = rgba(p.col, alpha);
+    ctx.fill();
+  });
+
+  // Resonance word
+  if (shownResonance && resonanceAlpha > 0.01) {
+    const fs = 44 + cur.intensity * 28;
+    ctx.font          = `${Math.round(fs)}px Georgia, serif`;
+    ctx.textAlign     = 'center';
+    ctx.textBaseline  = 'middle';
+    ctx.fillStyle     = rgba(col, resonanceAlpha * 0.88);
+    ctx.fillText(shownResonance, W / 2, H / 2);
+  }
+}
+
+
+// ── Main loop ────────────────────────────────────────────────
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+
+// ── Socket.IO ────────────────────────────────────────────────
+const socket = io();
+
+socket.on('connect', () => {
+  document.getElementById('status').classList.add('connected');
+});
+
+socket.on('disconnect', () => {
+  document.getElementById('status').classList.remove('connected');
+});
+
+socket.on('state', data => {
+  tgt = { ...cur, ...data };
+
+  // Update labels
+  document.getElementById('emotion-name').textContent = data.emotion || '—';
+  document.getElementById('robot-state').textContent  = data.robot_state || '—';
+
+  // Burst on new state
+  const count = 6 + Math.floor((data.energy || 0.5) * 22);
+  spawn(data.visual_mode, count);
+});
+</script>
+</body>
+</html>

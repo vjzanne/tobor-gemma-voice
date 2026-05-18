@@ -1,0 +1,13 @@
+# Core — required
+ollama>=0.3.0
+flask>=3.0
+flask-socketio>=5.3
+numpy>=1.24
+
+# Microphone mode — optional (--mode mic)
+faster-whisper>=1.0.0
+sounddevice>=0.4.6
+soundfile>=0.12
+
+# Raspberry Pi hardware — optional (uncomment if using PCA9685 servos)
+# Adafruit-PCA9685>=1.0.1
